@@ -12,7 +12,10 @@ const mongoose = require('mongoose');
 mongoose.connect(keys.mongoURI, {useNewUrlParser: true, useUnifiedTopology: true});
 
 app.get("/", (req, res)=>{
+<<<<<<< HEAD
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+=======
+>>>>>>> 33ffc2ae1558f3fd55eb4120e33560325fd9bece
     res.send("Zdarec");
 })
 

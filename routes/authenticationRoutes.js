@@ -4,7 +4,7 @@ const Account = mongoose.model('accounts');
 const argon2i = require('argon2-ffi').argon2i;
 const crypto = require('crypto');
 
-const passwordRegex = new RegExp("(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.{5,24})");
+const passwordRegex = new RegExp("(?=.*[a-z])(?=.*[0-9])(?=.{5,24})");
 
 module.exports = app => {
     // Routes

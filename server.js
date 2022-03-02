@@ -6,7 +6,7 @@ var cors = require('cors');
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }))
-app.use(cors({origin: 'http://localhost:8888'}));
+app.use(cors({origin: 'http://localhost:8080'}));
 
 
 const mongoose = require('mongoose');

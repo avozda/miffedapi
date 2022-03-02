@@ -11,7 +11,7 @@ app.use(bodyParser.urlencoded({ extended: false }))
 const mongoose = require('mongoose');
 mongoose.connect(keys.mongoURI, {useNewUrlParser: true, useUnifiedTopology: true});
 
-app.get("/", (res)=>{
+app.get("/", (req, res)=>{
     res.send("Zdarec");
 })
 

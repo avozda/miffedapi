@@ -12,8 +12,8 @@ module.exports = app => {
       
         var response = {};
 
-        const { rUsername, rPassword } = req.body;
-        if(rUsername == null || !passwordRegex.test(rPassword))
+        const { username, password } = req.body;
+        if(username == null || !passwordRegex.test(password))
         {
             response.code = 1;
             response.msg = "Invalid credentials";
@@ -21,9 +21,9 @@ module.exports = app => {
             return;
         }
 
-        var userAccount = await Account.findOne({ username: rUsername}, 'username adminFlag password');
+        var userAccount = await Account.findOne({ username: username}, 'username adminFlag password');
         if(userAccount != null){
-            argon2i.verify(userAccount.password, rPassword).then(async (success) => {
+            argon2i.verify(userAccount.password, password).then(async (success) => {
                 if(success){
                     userAccount.lastAuthentication = Date.now();
                     await userAccount.save();

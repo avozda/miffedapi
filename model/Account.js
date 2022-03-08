@@ -1,13 +1,28 @@
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const mongoose = require("mongoose");
 
-const accountSchema = new Schema({
-    username: String,
-    email: String,
-    password: String,
-    salt: String,
+//Model k uložení a prácí s uživateli v databázi
 
-    lastAuthentication: Date,
+const AccountSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    password: {
+        type: String,
+        required: true
+    },
+
+    date: {
+        type: Date,
+        default: Date.now
+    }
+
 });
 
-mongoose.model('accounts', accountSchema);
+
+module.exports = Account = mongoose.model("account", AccountSchema)

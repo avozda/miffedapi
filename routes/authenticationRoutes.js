@@ -1,113 +1,134 @@
-const mongoose = require('mongoose');
-const Account = mongoose.model('accounts');
+const express = require('express');
+const router = express.Router();
+const Account = require("../model/Account")
+const auth = require("../middleware/auth")
+const bcrypt = require("bcryptjs");
+const jwt = require('jsonwebtoken');
+const { check, validationResult } = require('express-validator');
 
-const argon2i = require('argon2-ffi').argon2i;
-const crypto = require('crypto');
 
-const passwordRegex = new RegExp("(?=.*[a-z])(?=.*[0-9])(?=.{5,24})");
+// @route    GET /auth
+// @desc     Najít uživatele z tokenu
+// @access   Private
+router.get('/', auth, async(req, res) => {
+    try {
+        const user = await Account.findById(req.user.id).select('-password');
+        res.json(user);
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send('Server Error');
+    }
+});
 
-module.exports = app => {
-    // Routes
-    app.post('/account/login', async (req, res) => {
-      
-        var response = {};
+//@route    POST /auth/register
+//@desc     Registrace
+//@access   Public
+router.post("/register", [
+    check("name", "Name is required").not().isEmpty(),
+    check("name", "Name must contain the maximum of 10 characters").isLength({ max: 10 }),
+    check("email", "Please include an valid email").isEmail(),
+    check("password", "Please enter a password with 6 or more characters").isLength({ min: 6 })
+], async(req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+    }
 
-        const { username, password } = req.body;
-        if(username == null || !passwordRegex.test(password))
-        {
-            response.code = 1;
-            response.msg = "Invalid credentials";
-            res.send(response);
-            return;
+    const { name, email, password } = req.body;
+
+    try {
+        // uživatel existuje?
+        let user = await Account.findOne({ email });
+        if (user) {
+            return res.status(400).json({ errors: [{ msg: "User already exists" }] })
+        }
+        user = new Account({
+                name,
+                email,
+                password
+            })
+        // encrypt heslo
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        await user.save();
+        // jwt
+
+        const payload = {
+            user: {
+                id: user.id
+            }
         }
 
-        var userAccount = await Account.findOne({ username: username}, 'username adminFlag password');
-        if(userAccount != null){
-            argon2i.verify(userAccount.password, password).then(async (success) => {
-                if(success){
-                    userAccount.lastAuthentication = Date.now();
-                    await userAccount.save();
+        jwt.sign(
+            payload,
+            "miffed", { expiresIn: 3600 },
+            (err, token) => {
+                if (err) throw err;
 
-                    response.code = 0;
-                    response.msg = "Account found";
-                    response.data = ( ({username, adminFlag}) => ({ username, adminFlag }) )(userAccount);
-                    res.send(response);
+                res.json({ token });
 
-                    return;
+            }
+        )
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("server error")
+    }
+})
+
+
+// @route    POST auth/login
+// @desc     Ověřit uživatele a získát token
+// @access   Public
+router.post(
+    '/login',
+    check('email', 'Please include a valid email').isEmail(),
+    check('password', 'Password is required').exists(),
+    async(req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { email, password } = req.body;
+
+        try {
+            let user = await Account.findOne({ email });
+
+            if (!user) {
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: 'Invalid Credentials' }] });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+
+            if (!isMatch) {
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: 'Invalid Credentials' }] });
+            }
+
+            const payload = {
+                user: {
+                    id: user.id
                 }
-                else{
-                    response.code = 1;
-                    response.msg = "Invalid credentials";
-                    res.send(response);
-                    return;
+            };
+
+            jwt.sign(
+                payload,
+                "miffed", { expiresIn: '5 days' },
+                (err, token) => {
+                    if (err) throw err;
+                    res.json({ token });
                 }
-            });
+            );
+        } catch (error) {
+            console.error(error.message);
+            res.status(500).send('Server error');
         }
-        else{
-            response.code = 1;
-            response.msg = "Invalid credentials";
-            res.send(response);
-            return;
-        }
-    });
+    }
+);
 
-    app.post('/account/create', async (req, res) => {
-    
-        var response = {};
 
-        const { rUsername, rPassword } = req.body;
-        if(rUsername == null || rUsername.length < 3 || rUsername.length > 24)
-        {
-            response.code = 1;
-            response.msg = "Invalid credentials";
-            res.send(response);
-            return;
-        }
-
-        console.log(passwordRegex);
-        console.log(rPassword);
-        if(!passwordRegex.test(rPassword))
-        {
-            response.code = 3;
-            response.msg = "Unsafe password";
-            res.send(response);
-            return;
-        }
-
-        var userAccount = await Account.findOne({ username: rUsername},'_id');
-        if(userAccount == null){
-            // Create a new account
-            console.log("Create new account...")
-
-            // Generate a unique access token
-            crypto.randomBytes(32, function(err, salt) {
-                if(err){
-                    console.log(err);
-                }
-
-                argon2i.hash(rPassword, salt).then(async (hash) => {
-                    var newAccount = new Account({
-                        username : rUsername,
-                        password : hash,
-                        salt: salt,
-        
-                        lastAuthentication : Date.now()
-                    });
-                    await newAccount.save();
-
-                    response.code = 0;
-                    response.msg = "Account created";
-                    response.data = ( ({username}) => ({ username }) )(newAccount);
-                    res.send(response);
-                    return;
-                });
-            });
-        } else {
-            response.code = 2;
-            response.msg = "Username is already taken";
-            res.send(response);
-        }
-        
-        return;
-    });
-}
+module.exports = router;

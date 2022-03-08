@@ -1,12 +1,12 @@
 const express = require('express');
 const keys = require('./config/keys.js');
 const app = express();
-//const bodyParser = require('body-parser');
-//var cors = require('cors');  
+const bodyParser = require('body-parser');
+var cors = require('cors');  
 
 // parse application/x-www-form-urlencoded
-/* app.use(bodyParser.urlencoded({ extended: false }))
-app.use(cors({origin: 'http://localhost:8080'})); */
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(cors({origin: 'http://localhost:8080'}));
 
 
 app.use(express.json({ extended: false }))

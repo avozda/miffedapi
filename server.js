@@ -9,7 +9,6 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cors({origin: 'http://localhost:8080'}));
 
 app.use(express.json({ extended: false }))
-app.use(bodyParser.json({ extended: false }))
 
 const mongoose = require('mongoose');
 mongoose.connect(keys.mongoURI, {useNewUrlParser: true, useUnifiedTopology: true});

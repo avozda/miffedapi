@@ -20,6 +20,7 @@ app.get("/", (req, res)=>{
 
 
 app.use("/auth", require("./routes/authenticationRoutes"))
+app.use("/post", require("./routes/postRoutes"))
 
 
 
